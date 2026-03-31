@@ -29,83 +29,26 @@ import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import edu.nd.pmcburne.hello.data.local.AppDatabase
+import edu.nd.pmcburne.hello.data.repository.PlacemarkRepository
+import edu.nd.pmcburne.hello.ui.CampusMapScreen
 import edu.nd.pmcburne.hello.ui.theme.MyApplicationTheme
+import edu.nd.pmcburne.hello.viewmodel.CampusMapViewModel
+import edu.nd.pmcburne.hello.viewmodel.CampusMapViewModelFactory
 
 class MainActivity : ComponentActivity() {
-    private val viewModel by viewModels<MainViewModel>()
+    private val viewModel: CampusMapViewModel by viewModels {
+        val db = AppDatabase.getDatabase(applicationContext)
+        val repo = PlacemarkRepository(db.placemarkDao())
+        CampusMapViewModelFactory(repo)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
-            MyApplicationTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainScreen(viewModel, modifier = Modifier.padding(innerPadding))
-                }
-            }
+            CampusMapScreen(viewModel)
         }
-    }
-}
-
-@Composable
-fun MainScreen(
-    viewModel: MainViewModel,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Text(
-            "Welcome to the Counter App!"
-        )
-        Spacer(modifier = modifier.height(16.dp))
-        Counter(viewModel)
-    }
-}
-
-@Composable
-@Preview(showBackground = true)
-fun PreviewMainScreen() {
-    MyApplicationTheme {
-        MainScreen(viewModel = MainViewModel())
-    }
-}
-
-@Composable
-fun Counter(
-    viewModel: MainViewModel,
-    modifier: Modifier = Modifier
-) {
-    val uiState by viewModel.uiState.collectAsState()
-    val counterValue = uiState.counterValue
-    Row {
-        Text("Value: $counterValue")
-        Button( // increment button
-            onClick = { viewModel.incrementCounter() },
-            modifier = modifier
-        ) { Text("+") }
-        Button( //decrement button
-            onClick = { viewModel.decrementCounter() },
-            enabled = viewModel.isDecrementEnabled,
-            modifier = modifier
-        ) {
-            Text("-")
-        }
-        Button( // reset button
-            onClick = { viewModel.incrementCounter() },
-            enabled = viewModel.isResetEnabled,
-            modifier = modifier
-        ) {
-            Text("Reset")
-        }
-
-    }
-}
-
-
-@Preview(name = "Light Mode Counter", showBackground = true)
-@Preview(name = "Dark Mode Counter", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun CounterPreview() {
-    MyApplicationTheme {
-        Counter(viewModel = MainViewModel(0))
     }
 }
