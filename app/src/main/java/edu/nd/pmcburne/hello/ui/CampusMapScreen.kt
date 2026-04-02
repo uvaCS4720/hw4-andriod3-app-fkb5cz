@@ -14,20 +14,30 @@ import edu.nd.pmcburne.hello.viewmodel.CampusMapViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampusMapScreen (viewModel: CampusMapViewModel){
+    // collect data from view model
     val tags by viewModel.allTags.collectAsStateWithLifecycle()
     val selectedTag by viewModel.selectedTag.collectAsStateWithLifecycle()
     val filteredPlaces by viewModel.filteredPlacemarks.collectAsStateWithLifecycle()
 
     var expanded by remember {mutableStateOf(false)}
 
+    // default center camera on UVA
     val uvaCenter = LatLng(38.0356, -78.5034)
+    // control map position and zoom
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(uvaCenter, 15f)
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = {Text("UVA Campus Maps")})
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "UVA Campus Maps",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            )
         }
     ) { padding ->
         Column(
@@ -36,10 +46,12 @@ fun CampusMapScreen (viewModel: CampusMapViewModel){
                 .padding(padding)
                 .padding(12.dp)
         ) {
+            // dropdown filter
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
             ) {
+                // only show selected tags
                 OutlinedTextField(
                     value = selectedTag,
                     onValueChange = {},
@@ -53,6 +65,7 @@ fun CampusMapScreen (viewModel: CampusMapViewModel){
                         .fillMaxWidth()
                 )
 
+                // dropdown with available tage
                 ExposedDropdownMenu(
                     expanded=expanded,
                     onDismissRequest = {expanded = false}
@@ -60,6 +73,7 @@ fun CampusMapScreen (viewModel: CampusMapViewModel){
                     tags.forEach { tag ->
                         DropdownMenuItem(
                             text = {Text(tag)},
+                            // update selected tag in viewmodel
                             onClick = {
                                 viewModel.setSelectedTag(tag)
                                 expanded = false
@@ -68,31 +82,57 @@ fun CampusMapScreen (viewModel: CampusMapViewModel){
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // show how many locations displayed based on tag filter
+            Text(
+                text = "Showing ${filteredPlaces.size} location(s) for \"$selectedTag\"",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
             Spacer(modifier = Modifier.height(12.dp))
 
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState
-            ) {
-                filteredPlaces.forEach { place ->
-                    MarkerInfoWindowContent(
-                        state = MarkerState(
-                            position = LatLng(place.latitude, place.longitude)
-                        ),
-                        title = place.name,
-                        snippet = place.description
+            // loading screen if data is being fetched
+            if (filteredPlaces.isEmpty()) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Loading campus locations. Please wait.")
+                }
+            } else {
+                // wrap map in a card
+                Card(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    elevation = CardDefaults.cardElevation(6.dp)
+                ) {
+                    GoogleMap(
+                        modifier = Modifier.fillMaxSize(),
+                        cameraPositionState = cameraPositionState
                     ) {
-                        marker ->
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            Text(
-                                text = marker.title ?: "",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = marker.snippet ?: "",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                        // add a marker for each filtered location
+                        filteredPlaces.forEach { place ->
+                            MarkerInfoWindowContent(
+                                state = MarkerState(
+                                    position = LatLng(place.latitude, place.longitude)
+                                ),
+                                title = place.name,
+                                snippet = place.description
+                            ) {
+                                    marker ->
+                                // custom info window for descriptions
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text(
+                                        text = marker.title ?: "",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = marker.snippet ?: "",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
                         }
                     }
                 }

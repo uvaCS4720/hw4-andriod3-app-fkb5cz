@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 class PlacemarkRepository (private val dao: PlacemarkDao) {
     val allPlacemarks: Flow<List<PlacemarkEntity>> = dao.getAllPlacemarks()
 
+    // fetch api data and store in db
     suspend fun syncFromApi() {
         val remote= ApiClient.service.getPlacemarks()
         val entities = remote.map {
@@ -19,6 +20,7 @@ class PlacemarkRepository (private val dao: PlacemarkDao) {
                 tags = it.tag_list.sorted().joinToString("|")
             )
         }
+        // upsert to avoid duplicates
         dao.upsertAll(entities)
     }
 }

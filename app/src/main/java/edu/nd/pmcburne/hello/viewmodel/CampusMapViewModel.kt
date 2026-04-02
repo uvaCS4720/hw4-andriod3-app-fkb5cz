@@ -16,9 +16,11 @@ class CampusMapViewModel (private val repository: PlacemarkRepository) : ViewMod
     private val _selectedTag = MutableStateFlow("core")
     val selectedTag: StateFlow<String> = _selectedTag
 
+    // get placemarks from database
     val placemarks = repository.allPlacemarks
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // sort tag list
     val allTags = placemarks
         .combine(selectedTag) { places, _ ->
             places.flatMap { it.tagList() }
@@ -27,18 +29,21 @@ class CampusMapViewModel (private val repository: PlacemarkRepository) : ViewMod
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // filtered placements based on selected tag
     val filteredPlacemarks = placemarks
         .combine(selectedTag) { places, tag ->
             places.filter { tag in it.tagList()}
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // sync data from API when viewmodel created
     init {
         viewModelScope.launch {
             repository.syncFromApi()
         }
     }
 
+    // update selected tag
     fun setSelectedTag(tag: String) {
         _selectedTag.value = tag
     }
